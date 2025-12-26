@@ -3,7 +3,8 @@
 
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Lucky Money Merry Christmas</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
@@ -72,6 +73,12 @@
       background: #000;
     }
   </style>
+  <style>
+  #camera-preview,
+  .input_video {
+    display: none !important;
+  }
+</style>
 </head>
 
 <body>
@@ -299,7 +306,8 @@
       createPortalSystem();
 
       animate();
-      startCamera();
+      //startCamera();
+initTouchControls();
     }
 
     function createPortalSystem() {
@@ -826,6 +834,75 @@
 
     // Auto start
     window.onload = init3D;
+    // ==========================================
+// TOUCH CONTROLS (MOBILE FRIENDLY)
+// ==========================================
+function initTouchControls() {
+  let startX = 0;
+  let lastTap = 0;
+  let holdTimer = null;
+
+  const statusDiv = document.getElementById("status");
+
+  window.addEventListener("touchstart", (e) => {
+    startX = e.touches[0].clientX;
+
+    // Hold 1s → vào carousel
+    holdTimer = setTimeout(() => {
+      if (state === "SINGLE") {
+        state = "CAROUSEL";
+        statusDiv.innerHTML = "👆 Vuốt để chọn Lì Xì";
+        statusDiv.style.color = "#00FFFF";
+      }
+    }, 800);
+  });
+
+  window.addEventListener("touchmove", (e) => {
+    if (state !== "CAROUSEL") return;
+
+    const deltaX = e.touches[0].clientX - startX;
+    startX = e.touches[0].clientX;
+
+    // Swipe rotate
+    currentRotation += deltaX * 0.005;
+  });
+
+  window.addEventListener("touchend", () => {
+    clearTimeout(holdTimer);
+
+    const now = Date.now();
+
+    // Double tap → reset
+    if (now - lastTap < 300) {
+      resetApp();
+      statusDiv.innerHTML = "🔄 Reset thành công";
+      statusDiv.style.color = "#FFD700";
+      return;
+    }
+    lastTap = now;
+
+    // Single tap → chọn lì xì
+    if (state === "CAROUSEL") {
+      let bestIdx = -1;
+      let maxZ = -999;
+
+      envelopes.forEach((e, i) => {
+        if (e.position.z > maxZ) {
+          maxZ = e.position.z;
+          bestIdx = i;
+        }
+      });
+
+      if (bestIdx !== -1) {
+        selectedIndex = bestIdx;
+        state = "COUNTDOWN";
+        countdownStart = Date.now();
+        statusDiv.innerHTML = "⏳ Đang mở lì xì...";
+        statusDiv.style.color = "#FF9999";
+      }
+    }
+  });
+}
   </script>
 </body>
 
