@@ -111,6 +111,7 @@
         let selectedIndex = -1;
         let openProgress = 0;
         let countdownStart = 0;
+        let hasMovedCarousel = false; // Flag to check if carousel has been rotated
 
         // Hand Tracking Data - DEPRECATED for touch
         let handX = 0.5;
@@ -682,6 +683,7 @@
             openProgress = 0;
             countdownStart = 0; // Reset countdown timer
             currentRotation = 0;
+            hasMovedCarousel = false; // Reset rotation flag
             if (fireworks && fireworks.length > 0) {
                 fireworks.forEach((f) => {
                     if (f.group) scene.remove(f.group);
@@ -733,6 +735,7 @@
 
                 // Swipe rotate
                 currentRotation += deltaX * 0.02; // Increased from 0.01 for faster rotation
+                hasMovedCarousel = true; // Mark that user has rotated
             });
 
             window.addEventListener("touchend", () => {
@@ -756,6 +759,12 @@
 
                 // Single tap → chọn lì xì
                 if (state === "CAROUSEL") {
+                    if (!hasMovedCarousel) {
+                        statusDiv.innerHTML = "⚠️ Hãy xoay Lì Xì trước khi chọn!";
+                        statusDiv.style.color = "#FF4444";
+                        return;
+                    }
+
                     let bestIdx = -1;
                     let maxZ = -999;
 
