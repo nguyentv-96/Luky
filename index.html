@@ -111,6 +111,7 @@
       let openProgress = 0;
       let countdownStart = 0;
       let hasMovedCarousel = false; // Flag to check if carousel has been rotated
+      let verticalOffset = 0; // Vertical drag offset
 
       // Hand Tracking Data - DEPRECATED for touch
       let handX = 0.5;
@@ -580,13 +581,28 @@
 
           const angleStep = (Math.PI * 2) / CONFIG.carouselCount;
 
+          // Find frontmost index to apply vertical drag solely to that one
+          let frontIdx = -1;
+          let maxZ = -999;
+          envelopes.forEach((env, i) => {
+            const angle = currentRotation + i * angleStep;
+            const z = Math.cos(angle) * CONFIG.carouselRadius - 20;
+            if (z > maxZ) {
+              maxZ = z;
+              frontIdx = i;
+            }
+          });
+
           envelopes.forEach((env, i) => {
             env.visible = true;
             const angle = currentRotation + i * angleStep;
             const x = Math.sin(angle) * CONFIG.carouselRadius;
-            const z = Math.cos(angle) * CONFIG.carouselRadius - 20; // Offset back
+            const z = Math.cos(angle) * CONFIG.carouselRadius - 20;
 
-            env.position.lerp(new THREE.Vector3(x, 0, z), 0.1);
+            // Apply vertical offset ONLY to the frontmost envelope
+            const targetY = i === frontIdx ? verticalOffset : 0;
+            env.position.lerp(new THREE.Vector3(x, targetY, z), 0.1);
+
             env.rotation.y = angle;
             env.scale.set(1, 1, 1);
 
@@ -735,12 +751,26 @@
           if (state !== "CAROUSEL") return;
 
           const x = e.touches[0].clientX;
+          const y = e.touches[0].clientY;
+
           const deltaX = x - currentTouchX;
+          const totalDeltaX = x - touchStartX;
+          const totalDeltaY = y - touchStartY;
+
           currentTouchX = x;
 
-          // Swipe rotate
-          targetRotation += deltaX * 0.02;
-          hasMovedCarousel = true;
+          // Vertical movement effect (Always update for real-time feel)
+          verticalOffset = -totalDeltaY * 0.3;
+
+          // Swipe rotate: LOCK rotation if we are clearly pulling UP/DOWN
+          // If vertical movement is significant (> 15px) or dominant, skip horizontal rotation
+          if (
+            Math.abs(totalDeltaY) < 20 &&
+            Math.abs(totalDeltaX) > Math.abs(totalDeltaY)
+          ) {
+            targetRotation += deltaX * 0.02;
+            hasMovedCarousel = true;
+          }
         });
 
         window.addEventListener("touchend", (e) => {
@@ -803,6 +833,9 @@
               statusDiv.innerHTML = "↔️ Vuốt ngang để xoay, Vuốt lên để mở!";
               statusDiv.style.color = "#FF4444";
             }
+
+            // Reset vertical offset if selection didn't latch
+            verticalOffset = 0;
           }
         });
       }
